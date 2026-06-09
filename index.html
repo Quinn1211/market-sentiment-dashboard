@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>全球市場情緒儀表板</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="市場情緒" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bg: '#0f172a',
+            card: '#1e293b',
+            border: '#334155',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    body { background-color: #0f172a; color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 1rem; padding: 1.25rem; }
+    .up { color: #22c55e; }
+    .down { color: #ef4444; }
+    .neutral { color: #94a3b8; }
+    .badge-up { background: #14532d; color: #22c55e; }
+    .badge-down { background: #450a0a; color: #ef4444; }
+    .badge-neutral { background: #1e293b; color: #94a3b8; }
+    .fg-bar { height: 8px; border-radius: 4px; background: linear-gradient(to right, #ef4444, #f97316, #eab308, #22c55e, #16a34a); }
+    .spinner { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+
+<body class="min-h-screen p-4 pb-8">
+
+  <!-- Header -->
+  <header class="flex items-center justify-between mb-6 pt-2">
+    <div>
+      <h1 class="text-xl font-bold text-white">全球市場情緒</h1>
+      <p id="last-updated" class="text-xs text-slate-400 mt-0.5">載入中...</p>
+    </div>
+    <button onclick="loadData()" class="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-sm text-white px-3 py-1.5 rounded-lg transition">
+      <svg id="refresh-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      重新整理
+    </button>
+  </header>
+
+  <!-- Fear & Greed (US) -->
+  <section class="card mb-4" id="fg-section" style="display:none">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-sm font-semibold text-slate-300">CNN 恐懼貪婪指數（美股）</span>
+      <span id="fg-label" class="text-xs font-bold px-2 py-0.5 rounded-full"></span>
+    </div>
+    <div class="fg-bar mb-2"></div>
+    <div class="flex justify-between text-xs text-slate-500">
+      <span>極度恐懼 0</span>
+      <span id="fg-score" class="text-white font-bold text-base">—</span>
+      <span>100 極度貪婪</span>
+    </div>
+  </section>
+
+  <!-- Market Cards -->
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2" id="market-grid">
+    <!-- filled by JS -->
+  </div>
+
+  <!-- VIX -->
+  <section class="card mt-4" id="vix-section" style="display:none">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm font-semibold text-slate-300">VIX 恐慌指數</p>
+        <p class="text-xs text-slate-500 mt-0.5">數值越高 = 市場越恐慌</p>
+      </div>
+      <div class="text-right">
+        <p id="vix-value" class="text-2xl font-bold">—</p>
+        <p id="vix-label" class="text-xs mt-0.5"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Loading overlay -->
+  <div id="loading" class="fixed inset-0 flex items-center justify-center bg-slate-900/80 z-50">
+    <div class="flex flex-col items-center gap-3">
+      <svg class="spinner w-8 h-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+      </svg>
+      <p class="text-slate-300 text-sm">載入市場數據中...</p>
+    </div>
+  </div>
+
+  <script>
+    const MARKET_FLAGS = { US: '🇺🇸', TW: '🇹🇼', JP: '🇯🇵', KR: '🇰🇷' };
+
+    function fmtPrice(v, symbol) {
+      if (!v) return '—';
+      if (symbol === '^TWII' || symbol === '^N225' || symbol === '^KS11') return v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+      return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function trendClass(t) {
+      return t === 'up' ? 'up' : t === 'down' ? 'down' : 'neutral';
+    }
+
+    function badgeClass(t) {
+      return t === 'up' ? 'badge-up' : t === 'down' ? 'badge-down' : 'badge-neutral';
+    }
+
+    function trendArrow(t) {
+      return t === 'up' ? '▲' : t === 'down' ? '▼' : '—';
+    }
+
+    function vixLevel(v) {
+      if (v === 0) return { label: '—', cls: 'neutral' };
+      if (v < 15) return { label: '市場平靜', cls: 'up' };
+      if (v < 20) return { label: '低波動', cls: 'up' };
+      if (v < 30) return { label: '中等恐慌', cls: 'neutral' };
+      if (v < 40) return { label: '高度恐慌', cls: 'down' };
+      return { label: '極度恐慌', cls: 'down' };
+    }
+
+    function fgLabelStyle(score) {
+      if (score >= 75) return { label: '極度貪婪', bg: '#14532d', color: '#22c55e' };
+      if (score >= 55) return { label: '貪婪', bg: '#166534', color: '#4ade80' };
+      if (score >= 45) return { label: '中性', bg: '#1e293b', color: '#94a3b8' };
+      if (score >= 25) return { label: '恐懼', bg: '#7c2d12', color: '#fb923c' };
+      return { label: '極度恐懼', bg: '#450a0a', color: '#ef4444' };
+    }
+
+    function renderMarkets(markets) {
+      const grid = document.getElementById('market-grid');
+      grid.innerHTML = '';
+      const order = ['US', 'TW', 'JP', 'KR'];
+      order.forEach(key => {
+        const m = markets[key];
+        if (!m) return;
+        const tc = trendClass(m.trend);
+        const bc = badgeClass(m.trend);
+        const arrow = trendArrow(m.trend);
+        const sign = m.change_pct > 0 ? '+' : '';
+        grid.innerHTML += `
+          <div class="card">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <span class="text-lg">${MARKET_FLAGS[key]}</span>
+                <span class="text-sm font-semibold text-slate-200 ml-1">${m.name}</span>
+              </div>
+              <span class="text-xs font-bold px-2 py-0.5 rounded-full ${bc}">${arrow} ${sign}${m.change_pct.toFixed(2)}%</span>
+            </div>
+            <p class="text-2xl font-bold text-white">${fmtPrice(m.price, m.symbol)}</p>
+            <p class="text-sm ${tc} mt-1">${sign}${m.change.toFixed(2)} 今日</p>
+          </div>`;
+      });
+    }
+
+    function renderFG(us) {
+      const score = us.fear_greed_index;
+      if (!score) return;
+      const section = document.getElementById('fg-section');
+      section.style.display = '';
+      document.getElementById('fg-score').textContent = score;
+      const style = fgLabelStyle(score);
+      const lbl = document.getElementById('fg-label');
+      lbl.textContent = style.label;
+      lbl.style.background = style.bg;
+      lbl.style.color = style.color;
+    }
+
+    function renderVIX(us) {
+      const vix = us.vix;
+      if (!vix) return;
+      document.getElementById('vix-section').style.display = '';
+      const v = vixLevel(vix);
+      const el = document.getElementById('vix-value');
+      el.textContent = vix;
+      el.className = `text-2xl font-bold ${v.cls}`;
+      const lbl = document.getElementById('vix-label');
+      lbl.textContent = v.label;
+      lbl.className = `text-xs mt-0.5 ${v.cls}`;
+    }
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      if (isNaN(d)) return iso;
+      return d.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (台北)';
+    }
+
+    async function loadData() {
+      document.getElementById('loading').style.display = 'flex';
+      const icon = document.getElementById('refresh-icon');
+      icon.classList.add('spinner');
+      try {
+        const res = await fetch('data.json?t=' + Date.now());
+        const data = await res.json();
+        renderMarkets(data.markets);
+        if (data.markets.US) {
+          renderFG(data.markets.US);
+          renderVIX(data.markets.US);
+        }
+        document.getElementById('last-updated').textContent = '更新時間：' + formatDate(data.last_updated);
+      } catch (e) {
+        document.getElementById('last-updated').textContent = '載入失敗，請重試';
+        console.error(e);
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+        icon.classList.remove('spinner');
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

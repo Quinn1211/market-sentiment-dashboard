@@ -1,0 +1,40 @@
+{
+  "last_updated": "2026-06-09T00:00:00Z",
+  "markets": {
+    "US": {
+      "name": "美股 S&P 500",
+      "symbol": "^GSPC",
+      "price": 0,
+      "change": 0,
+      "change_pct": 0,
+      "vix": 0,
+      "fear_greed_index": 0,
+      "fear_greed_label": "N/A",
+      "trend": "neutral"
+    },
+    "TW": {
+      "name": "台股 加權指數",
+      "symbol": "^TWII",
+      "price": 0,
+      "change": 0,
+      "change_pct": 0,
+      "trend": "neutral"
+    },
+    "JP": {
+      "name": "日股 日經225",
+      "symbol": "^N225",
+      "price": 0,
+      "change": 0,
+      "change_pct": 0,
+      "trend": "neutral"
+    },
+    "KR": {
+      "name": "韓股 KOSPI",
+      "symbol": "^KS11",
+      "price": 0,
+      "change": 0,
+      "change_pct": 0,
+      "trend": "neutral"
+    }
+  }
+}
