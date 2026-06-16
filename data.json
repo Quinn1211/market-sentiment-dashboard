@@ -1,14 +1,14 @@
 {
-  "last_updated": "2026-06-16T18:20:54Z",
+  "last_updated": "2026-06-16T22:02:22Z",
   "markets": {
     "US": {
       "name": "美股 S&P 500",
       "symbol": "%5EGSPC",
-      "price": 7529.86,
-      "change": -24.43,
-      "change_pct": -0.32,
-      "trend": "neutral",
-      "vix": 15.86,
+      "price": 7511.35,
+      "change": -42.94,
+      "change_pct": -0.57,
+      "trend": "down",
+      "vix": 16.41,
       "fear_greed_index": 23,
       "fear_greed_label": "Extreme Fear"
     },
