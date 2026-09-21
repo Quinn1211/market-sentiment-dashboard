@@ -1,39 +1,39 @@
 {
-  "last_updated": "2026-09-18T17:00:23Z",
+  "last_updated": "2026-09-21T04:09:00Z",
   "markets": {
     "US": {
       "name": "美股 S&P 500",
       "symbol": "%5EGSPC",
-      "price": 7622.73,
-      "change": -15.03,
-      "change_pct": -0.2,
+      "price": 7650.5,
+      "change": 12.74,
+      "change_pct": 0.17,
       "trend": "neutral",
-      "vix": 15.42,
-      "fear_greed_index": 56,
+      "vix": 14.81,
+      "fear_greed_index": 70,
       "fear_greed_label": "Greed"
     },
     "JP": {
       "name": "日股 日經225",
       "symbol": "%5EN225",
-      "price": 64136.25,
-      "change": 213.25,
-      "change_pct": 0.33,
-      "trend": "neutral"
+      "price": 65018.95,
+      "change": 882.7,
+      "change_pct": 1.38,
+      "trend": "up"
     },
     "KR": {
       "name": "韓股 KOSPI",
       "symbol": "%5EKS11",
-      "price": 6715.41,
-      "change": -2.56,
-      "change_pct": -0.04,
-      "trend": "neutral"
+      "price": 7016.77,
+      "change": 122.54,
+      "change_pct": 1.78,
+      "trend": "up"
     },
     "TW": {
       "name": "台股 加權指數",
       "symbol": "^TWII",
-      "price": 47180.75,
-      "change": 892.75,
-      "change_pct": 1.93,
+      "price": 47694.0,
+      "change": 513.25,
+      "change_pct": 1.09,
       "trend": "up"
     }
   }
